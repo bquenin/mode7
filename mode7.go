@@ -25,8 +25,8 @@ type Point struct {
 }
 
 const (
-	screenWidth  = 1024
-	screenHeight = 768
+	screenWidth  = 640
+	screenHeight = 400
 	mapSize      = 1024
 	fovHalf      = math.Pi / 4.0
 )
@@ -38,23 +38,26 @@ var (
 	near = .005
 	far  = .03
 
-	pixels  *image.RGBA
-	texture *image.RGBA
+	pixels *image.RGBA
+	//texture *image.RGBA
+	texture image.Image
 )
 
 func init() {
 	pixels = image.NewRGBA(image.Rect(0, 0, screenWidth, screenHeight))
-	texture = image.NewRGBA(image.Rect(0, 0, mapSize, mapSize))
-	for x := 0; x <= mapSize; x += 32 {
-		for y := 0; y < mapSize; y++ {
-			texture.Set(x, y, colornames.Magenta)
-			texture.Set(x-1, y, colornames.Magenta)
-			texture.Set(x+1, y, colornames.Magenta)
-			texture.Set(y, x, colornames.Blue)
-			texture.Set(y, x-1, colornames.Blue)
-			texture.Set(y, x+1, colornames.Blue)
-		}
-	}
+
+	_, texture, _ = ebitenutil.NewImageFromFile("mk1.png", ebiten.FilterDefault)
+	//texture = image.NewRGBA(image.Rect(0, 0, mapSize, mapSize))
+	//for x := 0; x <= mapSize; x += 32 {
+	//	for y := 0; y < mapSize; y++ {
+	//		texture.Set(x, y, colornames.Magenta)
+	//		texture.Set(x-1, y, colornames.Magenta)
+	//		texture.Set(x+1, y, colornames.Magenta)
+	//		texture.Set(y, x, colornames.Blue)
+	//		texture.Set(y, x-1, colornames.Blue)
+	//		texture.Set(y, x+1, colornames.Blue)
+	//	}
+	//}
 }
 
 func SampleColor(p *Point) color.Color {
@@ -64,7 +67,7 @@ func SampleColor(p *Point) color.Color {
 	if sx < 0 || sx >= mapSize || sy < 0 || sy >= mapSize {
 		return colornames.Black
 	}
-	return texture.At(sx%mapSize, sy%mapSize)
+	return texture.At(sx, sy)
 }
 
 func update(screen *ebiten.Image) error {
@@ -139,14 +142,14 @@ func update(screen *ebiten.Image) error {
 
 	// Draw the message
 	msg := fmt.Sprintf("X: %f\nY: %f\nT: %f\n", world.x, world.y, θ)
-	msg += fmt.Sprintf("FPS: %f\n", ebiten.CurrentFPS())
+	msg += fmt.Sprintf("FPS: %f, TPS: %f\n", ebiten.CurrentFPS(), ebiten.CurrentTPS())
 	msg += fmt.Sprintf("Use arrows to move around")
 	_ = ebitenutil.DebugPrint(screen, msg)
 	return nil
 }
 
 func main() {
-	if err := ebiten.Run(update, screenWidth, screenHeight, 1, "Mode7"); err != nil {
+	if err := ebiten.Run(update, screenWidth, screenHeight, 2, "Mode7"); err != nil {
 		log.Fatal(err)
 	}
 }
