@@ -27,47 +27,31 @@ type Point struct {
 const (
 	screenWidth  = 640
 	screenHeight = 400
-	mapSize      = 1024
-	fovHalf      = math.Pi / 4.0
 )
 
 var (
-	world = &Point{.5, .5}
-	θ     = math.Pi / 4.0
+	world   = &Point{.93, .75}
+	θ       = - math.Pi / 2.0
+	fovHalf = math.Pi / 4.0
+	near    = .005
+	far     = .03
 
-	near = .005
-	far  = .03
-
-	pixels *image.RGBA
-	//texture *image.RGBA
+	pixels  *image.RGBA
 	texture image.Image
 )
 
 func init() {
 	pixels = image.NewRGBA(image.Rect(0, 0, screenWidth, screenHeight))
-
 	_, texture, _ = ebitenutil.NewImageFromFile("mk1.png", ebiten.FilterDefault)
-	//texture = image.NewRGBA(image.Rect(0, 0, mapSize, mapSize))
-	//for x := 0; x <= mapSize; x += 32 {
-	//	for y := 0; y < mapSize; y++ {
-	//		texture.Set(x, y, colornames.Magenta)
-	//		texture.Set(x-1, y, colornames.Magenta)
-	//		texture.Set(x+1, y, colornames.Magenta)
-	//		texture.Set(y, x, colornames.Blue)
-	//		texture.Set(y, x-1, colornames.Blue)
-	//		texture.Set(y, x+1, colornames.Blue)
-	//	}
-	//}
 }
 
-func SampleColor(p *Point) color.Color {
-	sx := int(p.x * float64(mapSize))
-	sy := int(p.y * float64(mapSize-1.0))
-
-	if sx < 0 || sx >= mapSize || sy < 0 || sy >= mapSize {
+func SampleColor(i image.Image, p *Point) color.Color {
+	sx := int(p.x * float64(i.Bounds().Size().X))
+	sy := int(p.y * float64(i.Bounds().Size().Y-1.0))
+	if sx < 0 || sx >= i.Bounds().Size().X || sy < 0 || sy >= i.Bounds().Size().Y {
 		return colornames.Black
 	}
-	return texture.At(sx, sy)
+	return i.At(sx, sy)
 }
 
 func update(screen *ebiten.Image) error {
@@ -84,6 +68,29 @@ func update(screen *ebiten.Image) error {
 	if ebiten.IsKeyPressed(ebiten.KeyDown) {
 		world.x -= math.Cos(θ) * 0.002
 		world.y -= math.Sin(θ) * 0.002
+	}
+	if ebiten.IsKeyPressed(ebiten.KeyQ) {
+		near += 0.002
+	}
+	if ebiten.IsKeyPressed(ebiten.KeyW) {
+		near -= 0.002
+	}
+	if ebiten.IsKeyPressed(ebiten.KeyA) {
+		far += 0.002
+	}
+	if ebiten.IsKeyPressed(ebiten.KeyS) {
+		far -= 0.002
+	}
+	if ebiten.IsKeyPressed(ebiten.KeyZ) {
+		fovHalf += 0.002
+	}
+	if ebiten.IsKeyPressed(ebiten.KeyX) {
+		fovHalf -= 0.002
+	}
+	if ebiten.IsKeyPressed(ebiten.KeyR) {
+		fovHalf = math.Pi / 4.0
+		near = .005
+		far = .03
 	}
 
 	if ebiten.IsDrawingSkipped() {
@@ -132,8 +139,8 @@ func update(screen *ebiten.Image) error {
 				(end.y-start.y)*sampleWidth + start.y,
 			}
 
-			// Sample pixel from the texture and draw the pixel
-			pixels.Set(x, y+screenHeight/2, SampleColor(sample))
+			// Sample color from the texture and draw the pixel
+			pixels.Set(x, y+screenHeight/2, SampleColor(texture, sample))
 		}
 	}
 
@@ -142,8 +149,9 @@ func update(screen *ebiten.Image) error {
 
 	// Draw the message
 	msg := fmt.Sprintf("X: %f\nY: %f\nT: %f\n", world.x, world.y, θ)
+	msg += fmt.Sprintf("near: %f\nfar: %f\nfov: %f\n", near, far, fovHalf)
 	msg += fmt.Sprintf("FPS: %f, TPS: %f\n", ebiten.CurrentFPS(), ebiten.CurrentTPS())
-	msg += fmt.Sprintf("Use arrows to move around")
+	msg += fmt.Sprintf("Use arrows to move around. q/w for near, a/s for far, z/x for fov.")
 	_ = ebitenutil.DebugPrint(screen, msg)
 	return nil
 }
