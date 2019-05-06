@@ -11,13 +11,11 @@ package main
 import (
 	"fmt"
 	"image"
-	"image/color"
 	"log"
 	"math"
 
 	"github.com/hajimehoshi/ebiten"
 	"github.com/hajimehoshi/ebiten/ebitenutil"
-	"golang.org/x/image/colornames"
 )
 
 type Point struct {
@@ -25,33 +23,32 @@ type Point struct {
 }
 
 const (
-	screenWidth  = 640
-	screenHeight = 400
+	screenWidth  = 1024
+	screenHeight = 768
 )
 
 var (
 	world   = &Point{.93, .75}
-	θ       = - math.Pi / 2.0
+	θ       = -math.Pi / 2.0
 	fovHalf = math.Pi / 4.0
 	near    = .005
 	far     = .03
 
 	pixels  *image.RGBA
-	texture image.Image
+	texture *image.RGBA
 )
 
 func init() {
 	pixels = image.NewRGBA(image.Rect(0, 0, screenWidth, screenHeight))
-	_, texture, _ = ebitenutil.NewImageFromFile("mk1.png", ebiten.FilterDefault)
-}
 
-func SampleColor(i image.Image, p *Point) color.Color {
-	sx := int(p.x * float64(i.Bounds().Size().X))
-	sy := int(p.y * float64(i.Bounds().Size().Y-1.0))
-	if sx < 0 || sx >= i.Bounds().Size().X || sy < 0 || sy >= i.Bounds().Size().Y {
-		return colornames.Black
+	// Convert the texture to RGBA
+	_, tmp, _ := ebitenutil.NewImageFromFile("mk1.png", ebiten.FilterDefault)
+	texture = image.NewRGBA(image.Rect(0, 0, tmp.Bounds().Size().X, tmp.Bounds().Size().Y))
+	for y := 0; y < tmp.Bounds().Size().Y; y++ {
+		for x := 0; x < tmp.Bounds().Size().X; x++ {
+			texture.Set(x, y, tmp.At(x, y))
+		}
 	}
-	return i.At(sx, sy)
 }
 
 func update(screen *ebiten.Image) error {
@@ -139,8 +136,23 @@ func update(screen *ebiten.Image) error {
 				(end.y-start.y)*sampleWidth + start.y,
 			}
 
-			// Sample color from the texture and draw the pixel
-			pixels.Set(x, y+screenHeight/2, SampleColor(texture, sample))
+			// Sample color from the texture
+			sx := int(sample.x * float64(texture.Bounds().Size().X))
+			sy := int(sample.y * float64(texture.Bounds().Size().Y-1.0))
+			var r, g, b, a uint8
+			if sx < 0 || sx >= texture.Bounds().Size().X || sy < 0 || sy >= texture.Bounds().Size().Y {
+				r, g, b, a = 0, 0, 0, 0
+			} else {
+				t := texture.PixOffset(sx, sy)
+				r, g, b, a = texture.Pix[t], texture.Pix[t+1], texture.Pix[t+2], texture.Pix[t+3]
+			}
+
+			// Draw the pixel
+			i := pixels.PixOffset(x, y+screenHeight/2)
+			pixels.Pix[i] = r
+			pixels.Pix[i+1] = g
+			pixels.Pix[i+2] = b
+			pixels.Pix[i+3] = a
 		}
 	}
 
@@ -157,7 +169,7 @@ func update(screen *ebiten.Image) error {
 }
 
 func main() {
-	if err := ebiten.Run(update, screenWidth, screenHeight, 2, "Mode7"); err != nil {
+	if err := ebiten.Run(update, screenWidth, screenHeight, 1, "Mode7"); err != nil {
 		log.Fatal(err)
 	}
 }
