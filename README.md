@@ -14,3 +14,16 @@ Make sure you have go 1.11 or newer installed.
 ```shell
 go run mode7.go
 ```
+
+## Web Assembly
+
+Build assembly
+
+```shell
+GOOS=js GOARCH=wasm go build -o mode7.wasm
+```
+
+Serve local files using HTTP:
+```shell
+goexec 'http.ListenAndServe(":8080", http.FileServer(http.Dir(".")))'
+```

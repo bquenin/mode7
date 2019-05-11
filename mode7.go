@@ -16,6 +16,7 @@ import (
 
 	"github.com/hajimehoshi/ebiten"
 	"github.com/hajimehoshi/ebiten/ebitenutil"
+	"golang.org/x/image/colornames"
 )
 
 type Point struct {
@@ -23,8 +24,8 @@ type Point struct {
 }
 
 const (
-	screenWidth  = 1024
-	screenHeight = 768
+	screenWidth  = 640
+	screenHeight = 240
 )
 
 var (
@@ -41,14 +42,26 @@ var (
 func init() {
 	pixels = image.NewRGBA(image.Rect(0, 0, screenWidth, screenHeight))
 
-	// Convert the texture to RGBA
-	_, tmp, _ := ebitenutil.NewImageFromFile("mk1.png", ebiten.FilterDefault)
-	texture = image.NewRGBA(image.Rect(0, 0, tmp.Bounds().Size().X, tmp.Bounds().Size().Y))
-	for y := 0; y < tmp.Bounds().Size().Y; y++ {
-		for x := 0; x < tmp.Bounds().Size().X; x++ {
-			texture.Set(x, y, tmp.At(x, y))
+	texture = image.NewRGBA(image.Rect(0, 0, 1024, 1024))
+	for x := 0; x <= 1024; x += 32 {
+		for y := 0; y < 1024; y++ {
+			texture.Set(x, y, colornames.Magenta)
+			texture.Set(x-1, y, colornames.Magenta)
+			texture.Set(x+1, y, colornames.Magenta)
+			texture.Set(y, x, colornames.Blue)
+			texture.Set(y, x-1, colornames.Blue)
+			texture.Set(y, x+1, colornames.Blue)
 		}
 	}
+
+	// Convert the texture to RGBA
+	//_, tmp, _ := ebitenutil.NewImageFromFile("mk1.png", ebiten.FilterDefault)
+	//texture = image.NewRGBA(image.Rect(0, 0, tmp.Bounds().Size().X, tmp.Bounds().Size().Y))
+	//for y := 0; y < tmp.Bounds().Size().Y; y++ {
+	//	for x := 0; x < tmp.Bounds().Size().X; x++ {
+	//		texture.Set(x, y, tmp.At(x, y))
+	//	}
+	//}
 }
 
 func update(screen *ebiten.Image) error {
@@ -88,6 +101,16 @@ func update(screen *ebiten.Image) error {
 		fovHalf = math.Pi / 4.0
 		near = .005
 		far = .03
+	}
+
+	switch len(ebiten.TouchIDs()) {
+	case 1:
+		world.x += math.Cos(θ) * 0.002
+		world.y += math.Sin(θ) * 0.002
+	case 2:
+		θ += 0.02
+	case 3:
+		θ -= 0.02
 	}
 
 	if ebiten.IsDrawingSkipped() {
