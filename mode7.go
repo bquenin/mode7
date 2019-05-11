@@ -103,14 +103,17 @@ func update(screen *ebiten.Image) error {
 		far = .03
 	}
 
-	switch len(ebiten.TouchIDs()) {
-	case 1:
-		world.x += math.Cos(θ) * 0.002
-		world.y += math.Sin(θ) * 0.002
-	case 2:
-		θ += 0.02
-	case 3:
-		θ -= 0.02
+	touches := ebiten.TouchIDs()
+	for i := 0; i < len(touches); i++ {
+		x, _ := ebiten.TouchPosition(touches[i])
+		if x < screenWidth/3 {
+			θ -= 0.02
+		} else if x > 2*screenWidth/3 {
+			θ += 0.02
+		} else {
+			world.x += math.Cos(θ) * 0.002
+			world.y += math.Sin(θ) * 0.002
+		}
 	}
 
 	if ebiten.IsDrawingSkipped() {
@@ -183,8 +186,8 @@ func update(screen *ebiten.Image) error {
 	_ = screen.ReplacePixels(pixels.Pix)
 
 	// Draw the message
-	msg := fmt.Sprintf("X: %f\nY: %f\nT: %f\n", world.x, world.y, θ)
-	msg += fmt.Sprintf("near: %f\nfar: %f\nfov: %f\n", near, far, fovHalf)
+	msg := fmt.Sprintf("X: %f, Y: %f, T: %f\n", world.x, world.y, θ)
+	msg += fmt.Sprintf("near: %f, far: %f, fov: %f\n", near, far, fovHalf)
 	msg += fmt.Sprintf("FPS: %f, TPS: %f\n", ebiten.CurrentFPS(), ebiten.CurrentTPS())
 	msg += fmt.Sprintf("Use arrows to move around. q/w for near, a/s for far, z/x for fov.")
 	_ = ebitenutil.DebugPrint(screen, msg)
