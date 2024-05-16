@@ -13,10 +13,14 @@ import (
 	"image"
 	"log"
 	"math"
+	"os"
 
-	"github.com/hajimehoshi/ebiten"
-	"github.com/hajimehoshi/ebiten/ebitenutil"
+	"github.com/hajimehoshi/ebiten/v2"
+	"github.com/hajimehoshi/ebiten/v2/ebitenutil"
 )
+
+type Game struct {
+}
 
 type Point struct {
 	x, y float64
@@ -42,7 +46,10 @@ func init() {
 	pixels = image.NewRGBA(image.Rect(0, 0, screenWidth, screenHeight))
 
 	// Convert the texture to RGBA
-	_, tmp, _ := ebitenutil.NewImageFromFile("mk1.png", ebiten.FilterDefault)
+	_, tmp, err := ebitenutil.NewImageFromFile("mk1.png")
+	if err != nil {
+		panic(err)
+	}
 	texture = image.NewRGBA(image.Rect(0, 0, tmp.Bounds().Size().X, tmp.Bounds().Size().Y))
 	for y := 0; y < tmp.Bounds().Size().Y; y++ {
 		for x := 0; x < tmp.Bounds().Size().X; x++ {
@@ -51,7 +58,12 @@ func init() {
 	}
 }
 
-func update(screen *ebiten.Image) error {
+func (g *Game) Update() error {
+	if ebiten.IsKeyPressed(ebiten.KeyEscape) {
+		fmt.Println("Game ended by user via regular termination")
+		os.Exit(0)
+	}
+
 	if ebiten.IsKeyPressed(ebiten.KeyRight) {
 		θ += 0.02
 	}
@@ -89,11 +101,10 @@ func update(screen *ebiten.Image) error {
 		near = .005
 		far = .03
 	}
+	return nil
+}
 
-	if ebiten.IsDrawingSkipped() {
-		return nil
-	}
-
+func (g *Game) Draw(screen *ebiten.Image) {
 	// Create Frustum corner points
 	far1 := &Point{
 		world.x + math.Cos(θ-fovHalf)*far,
@@ -157,19 +168,28 @@ func update(screen *ebiten.Image) error {
 	}
 
 	// Draw the pixels
-	_ = screen.ReplacePixels(pixels.Pix)
+	screen.WritePixels(pixels.Pix)
 
 	// Draw the message
 	msg := fmt.Sprintf("X: %f\nY: %f\nT: %f\n", world.x, world.y, θ)
 	msg += fmt.Sprintf("near: %f\nfar: %f\nfov: %f\n", near, far, fovHalf)
 	msg += fmt.Sprintf("FPS: %f, TPS: %f\n", ebiten.CurrentFPS(), ebiten.CurrentTPS())
 	msg += fmt.Sprintf("Use arrows to move around. q/w for near, a/s for far, z/x for fov.")
-	_ = ebitenutil.DebugPrint(screen, msg)
-	return nil
+	ebitenutil.DebugPrint(screen, msg)
+}
+
+func (g *Game) Layout(outsideWidth, outsideHeight int) (int, int) {
+	return outsideWidth, outsideHeight
+}
+
+func NewGame() *Game {
+	return &Game{}
 }
 
 func main() {
-	if err := ebiten.Run(update, screenWidth, screenHeight, 1, "Mode7"); err != nil {
+	ebiten.SetWindowSize(screenWidth, screenHeight)
+	ebiten.SetWindowTitle("Mode7")
+	if err := ebiten.RunGame(NewGame()); err != nil {
 		log.Fatal(err)
 	}
 }
